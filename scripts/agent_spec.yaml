@@ -1,0 +1,103 @@
+models:
+  orchestration: auto
+
+orchestration:
+  budget:
+    seconds: 120
+    tokens: 100000
+
+instructions:
+  orchestration: >
+    You are a knowledge base assistant for a personal wiki about the technology industry, AI, Snowflake, and enterprise software.
+    When the user asks to add, expand, update, enrich, or annotate content in an article, use the annotate_article tool.
+    IMPORTANT: The article_slug is provided in the context prefix as [Context: Wiki article "Title" (slug)]. Extract the slug from there.
+    Before annotating, search the wiki and source content first to gather related material, then pass a rich instruction to annotate_article that includes what you found.
+    When asked about facts, market data, or recent events, use web search to find current information.
+    For questions about counts, status, or metadata (how many articles, overdue todos, pipeline history), use the structured data query tool.
+    All timestamps in the database are stored as UTC TIMESTAMP_NTZ. Do not add date or time filters unless the user explicitly asks for a date range.
+    Cite sources when using web search results.
+  response: >
+    Return responses in clean Markdown. Use ## subheadings for sections.
+    Use [[topic-slug|Display Text]] format to cross-reference related wiki topics where relevant.
+    Be specific with facts, names, numbers, and dates — avoid vague summaries.
+    When you annotate an article, tell the user what was changed and confirm the update was saved.
+  sample_questions:
+    - question: "What does the wiki say about AI adoption in enterprises?"
+      answer: "I'll search the wiki for articles related to enterprise AI adoption and summarize the key findings."
+    - question: "What are the latest funding rounds in AI?"
+      answer: "I'll search the web for recent AI funding news and compile the results."
+    - question: "Add a section about Snowflake Arctic to this article"
+      answer: "I'll search for information about Snowflake Arctic, then use the annotate tool to add a new section to the article."
+
+tools:
+  - tool_spec:
+      type: cortex_search
+      name: search_wiki
+      description: >
+        Search the personal wiki articles for related topics, concepts, and knowledge.
+        Use this to find existing coverage of a topic before writing new content,
+        to cross-reference between articles, or to check what the wiki already says about a subject.
+  - tool_spec:
+      type: cortex_search
+      name: search_all_content
+      description: >
+        Search all source material including raw documents, meeting notes, and wiki articles.
+        Use this to find original source documents, raw data, or content that may not have been
+        synthesized into wiki articles yet.
+  - tool_spec:
+      type: cortex_analyst_text_to_sql
+      name: query_data
+      description: >
+        Query structured metadata about the knowledge base: wiki article counts by category,
+        todo items and their status/priority, client information, and pipeline run history.
+        Use for questions about counts, trends, and status of the knowledge base itself.
+  - tool_spec:
+      type: web_search
+      name: web_search
+      description: >
+        Search the web for current information, recent news, market data, funding announcements,
+        product updates, and documentation. Use when the user asks about recent events,
+        latest data, or information not found in the wiki.
+  - tool_spec:
+      type: generic
+      name: annotate_article
+      description: >
+        Modify, enrich, expand, or annotate a wiki article with new content. Use this tool when the user asks to
+        add a section, update information, expand on a topic, include new details, or otherwise change an article.
+        The article_slug identifies which article to update and the instruction describes what to add or change.
+        Always search for related content first before calling this tool so you can provide a richer instruction.
+      input_schema:
+        type: object
+        properties:
+          article_slug:
+            type: string
+            description: The slug identifier of the wiki article to annotate (e.g. "snowflake-overview")
+          instruction:
+            type: string
+            description: Detailed instruction of what to add or change in the article. Include any relevant context or facts gathered from searches.
+        required:
+          - article_slug
+          - instruction
+
+tool_resources:
+  search_wiki:
+    name: "{{DB}}.APP.WIKI_SEARCH_SERVICE"
+    max_results: 10
+  search_all_content:
+    name: "{{DB}}.APP.SNOWTS_SEARCH_SERVICE"
+    max_results: 10
+  query_data:
+    semantic_view: "{{DB}}.APP.SNOWTS_SEMANTIC_VIEW"
+    execution_environment:
+      type: warehouse
+      warehouse: "{{WH}}"
+      query_timeout: 120
+  web_search:
+    enabled: true
+  annotate_article:
+    type: procedure
+    identifier: "{{DB}}.APP.ANNOTATE_WIKI_ARTICLE"
+    execution_environment:
+      type: warehouse
+      warehouse: "{{WH}}"
+      query_timeout: 120

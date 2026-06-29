@@ -1,0 +1,214 @@
+name: SNOWTS_SEMANTIC_VIEW
+description: Semantic view over the SnowTS personal knowledge base metadata including wiki articles, todos, clients, and pipeline runs.
+tables:
+  - name: WIKI_ARTICLES
+    description: Wiki knowledge base articles organized by topic and category
+    base_table:
+      database: "{{DB}}"
+      schema: APP
+      table: WIKI_ARTICLES
+    primary_key:
+      columns:
+        - ID
+    dimensions:
+      - name: ID
+        expr: ID
+        data_type: VARCHAR
+      - name: SLUG
+        description: URL-friendly identifier for the wiki article
+        expr: SLUG
+        data_type: VARCHAR
+      - name: TITLE
+        description: Human-readable title of the wiki article
+        synonyms:
+          - article name
+          - topic name
+        expr: TITLE
+        data_type: VARCHAR
+      - name: CATEGORY
+        description: Topic category such as technology, product, strategy, industry, people, or process
+        synonyms:
+          - topic category
+          - article category
+        expr: CATEGORY
+        data_type: VARCHAR
+      - name: TAGS_TEXT
+        description: Comma-separated tags associated with the article
+        expr: TAGS_TEXT
+        data_type: VARCHAR
+      - name: CREATED_AT
+        description: When the wiki article was first created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+      - name: UPDATED_AT
+        description: When the wiki article was last updated
+        expr: UPDATED_AT
+        data_type: TIMESTAMP_NTZ
+    metrics:
+      - name: ARTICLE_COUNT
+        description: Total number of wiki articles
+        expr: COUNT(WIKI_ARTICLES.ID)
+  - name: TODOS
+    description: Action items and tasks extracted from documents, notes, and manual entry
+    base_table:
+      database: "{{DB}}"
+      schema: APP
+      table: TODOS
+    primary_key:
+      columns:
+        - ID
+    dimensions:
+      - name: ID
+        expr: ID
+        data_type: VARCHAR
+      - name: TITLE
+        description: Short description of the todo action item
+        synonyms:
+          - task name
+          - action item
+        expr: TITLE
+        data_type: VARCHAR
+      - name: STATUS
+        description: "Current status of the todo. Values are backlog, todo, in_progress, or done"
+        synonyms:
+          - task status
+        expr: STATUS
+        data_type: VARCHAR
+      - name: PRIORITY
+        description: Priority level of the todo
+        expr: PRIORITY
+        data_type: VARCHAR
+      - name: DUE_DATE
+        description: When the todo is due
+        expr: DUE_DATE
+        data_type: DATE
+      - name: GROUP_NAME
+        description: Grouping label for related todos
+        expr: GROUP_NAME
+        data_type: VARCHAR
+      - name: CONFIDENCE
+        description: "Confidence level of the todo extraction, high for manual, low for AI-generated"
+        expr: CONFIDENCE
+        data_type: VARCHAR
+      - name: SOURCE
+        description: "Where the todo came from such as ai-pipeline, ai-inbox, ai-quicknote, or manual"
+        expr: SOURCE
+        data_type: VARCHAR
+      - name: CREATED_AT
+        description: When the todo was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+      - name: ARCHIVED_AT
+        description: "When the todo was archived, null if still active"
+        expr: ARCHIVED_AT
+        data_type: TIMESTAMP_NTZ
+      - name: REJECTED_AT
+        description: "When the todo was rejected, null if not rejected"
+        expr: REJECTED_AT
+        data_type: TIMESTAMP_NTZ
+      - name: CLIENT_ID
+        description: Foreign key to the client this todo relates to
+        expr: CLIENT_ID
+        data_type: VARCHAR
+    metrics:
+      - name: TODO_COUNT
+        description: Total number of todos
+        expr: COUNT(TODOS.ID)
+      - name: ACTIVE_TODO_COUNT
+        description: Number of active todos that are not archived or rejected
+        expr: "COUNT(CASE WHEN TODOS.ARCHIVED_AT IS NULL AND TODOS.REJECTED_AT IS NULL AND TODOS.STATUS != 'done' THEN 1 END)"
+      - name: OVERDUE_COUNT
+        description: Number of todos that are past their due date and not completed
+        expr: "COUNT(CASE WHEN TODOS.DUE_DATE < CURRENT_DATE AND TODOS.STATUS NOT IN ('done') AND TODOS.ARCHIVED_AT IS NULL AND TODOS.REJECTED_AT IS NULL THEN 1 END)"
+  - name: CLIENTS
+    description: Client organizations tracked in the knowledge base
+    base_table:
+      database: "{{DB}}"
+      schema: APP
+      table: CLIENTS
+    primary_key:
+      columns:
+        - ID
+    dimensions:
+      - name: ID
+        expr: ID
+        data_type: VARCHAR
+      - name: NAME
+        description: Client organization name
+        synonyms:
+          - company name
+          - client name
+        expr: NAME
+        data_type: VARCHAR
+      - name: INDUSTRY
+        description: Industry vertical of the client
+        expr: INDUSTRY
+        data_type: VARCHAR
+      - name: ENGAGEMENT_STATUS
+        description: Current engagement status with the client
+        expr: ENGAGEMENT_STATUS
+        data_type: VARCHAR
+      - name: LAST_CONTACT
+        description: Date of last interaction with the client
+        expr: LAST_CONTACT
+        data_type: DATE
+      - name: CREATED_AT
+        description: When the client record was created
+        expr: CREATED_AT
+        data_type: TIMESTAMP_NTZ
+    metrics:
+      - name: CLIENT_COUNT
+        description: Total number of clients
+        expr: COUNT(CLIENTS.ID)
+  - name: PIPELINE_RUNS
+    description: Document processing pipeline execution history
+    base_table:
+      database: "{{DB}}"
+      schema: APP
+      table: PIPELINE_RUNS
+    primary_key:
+      columns:
+        - ID
+    dimensions:
+      - name: ID
+        expr: ID
+        data_type: VARCHAR
+      - name: PIPELINE_TYPE
+        description: Type of pipeline run
+        expr: PIPELINE_TYPE
+        data_type: VARCHAR
+      - name: STATUS
+        description: "Pipeline run status such as completed, failed, or running"
+        synonyms:
+          - run status
+        expr: STATUS
+        data_type: VARCHAR
+      - name: STARTED_AT
+        description: When the pipeline run started
+        expr: STARTED_AT
+        data_type: TIMESTAMP_NTZ
+      - name: COMPLETED_AT
+        description: When the pipeline run finished
+        expr: COMPLETED_AT
+        data_type: TIMESTAMP_NTZ
+    facts:
+      - name: FILES_PROCESSED
+        description: Number of files processed in this pipeline run
+        expr: FILES_PROCESSED
+        data_type: NUMBER
+    metrics:
+      - name: RUN_COUNT
+        description: Total number of pipeline runs
+        expr: COUNT(PIPELINE_RUNS.ID)
+      - name: TOTAL_FILES_PROCESSED
+        description: Total number of files processed across all runs
+        expr: SUM(PIPELINE_RUNS.FILES_PROCESSED)
+relationships:
+  - name: TODOS_TO_CLIENTS
+    left_table: TODOS
+    right_table: CLIENTS
+    relationship_columns:
+      - left_column: CLIENT_ID
+        right_column: ID
+    relationship_type: many_to_one
+custom_instructions: "All TIMESTAMP_NTZ columns store UTC values. Do NOT add date or time filters such as created_at <= CURRENT_TIMESTAMP() unless the user explicitly asks to filter by a date range."

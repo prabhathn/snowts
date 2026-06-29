@@ -133,7 +133,7 @@ snowts-v3-appdef/
 - **Build Steps** (two tracks):
   - **Snowflake-Accelerated Track**: Uses scripts/ directly, creates all objects via `scripts/ddl.sql`, `scripts/agent_spec.yaml`, etc. Fast, exact.
   - **General Platform Track**: Translates DATA.md contracts to the user's chosen database, adapts Cortex-specific features to alternatives or stubs them.
-- **Backend Construction**: API route map (from [SPEC.md](~/code/snowts-v3/SPEC.md)), data access patterns, AI pipeline stages
+- **Backend Construction**: API route map (from `assets/snowts-v3/SPEC.md`), data access patterns, AI pipeline stages
 - **Frontend Construction**: References DESIGN.md, adapts to user's framework choice
 - **Personalization Guide**: How to customize based on interview answers (e.g., if user prefers Zettelkasten, emphasize bidirectional links; if GTD, add contexts/areas to todos)
 - **Validation Checklist**: Data contracts met, all Snowflake objects exist, pipeline processes files end-to-end, agent responds to queries
@@ -142,21 +142,21 @@ snowts-v3-appdef/
 
 ### 5. scripts/ (Critical Rigid Components)
 
-These are extracted from [setup.py](~/code/snowts-v3/app/backend/services/setup.py) and parameterized with `{{DB}}` and `{{WH}}` placeholders.
+These are the rigid SQL and YAML components that define the exact Snowflake objects any SnowTS instance must create. All are parameterized with `{{DB}}` and `{{WH}}` placeholders.
 
-| File | Source | Purpose |
-|---|---|---|
-| `ddl.sql` | TABLE_DDL dict from setup.py | All 13 CREATE TABLE statements + stage |
-| `search_services.sql` | SEARCH_SERVICE_DDL + WIKI_SEARCH_SERVICE_DDL | Both Cortex Search service definitions |
-| `semantic_view.yaml` | SEMANTIC_VIEW_YAML string | Exact semantic view YAML for SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML |
-| `agent_spec.yaml` | AGENT_DDL inner YAML | Cortex Agent specification (models, tools, instructions) |
-| `stored_procedures.sql` | ANNOTATE_PROCEDURE_DDL | ANNOTATE_WIKI_ARTICLE procedure |
+| File | Purpose |
+|---|---|
+| `ddl.sql` | All 13 CREATE TABLE statements + stage |
+| `search_services.sql` | Both Cortex Search service definitions |
+| `semantic_view.yaml` | Exact semantic view YAML for SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML |
+| `agent_spec.yaml` | Cortex Agent specification (models, tools, instructions) |
+| `stored_procedures.sql` | ANNOTATE_WIKI_ARTICLE procedure |
 
 All scripts use `{{DB}}` and `{{WH}}` as placeholders that the build process substitutes.
 
 ### 6. assets/snowts-v3/ (Reference Implementation)
 
-A read-only copy of the full `~/code/snowts-v3` source tree. This is NOT meant to be deployed directly -- it serves as a reference the agent can consult when reconstructing components. The agent reads patterns from it but writes new code in the user's preferred style.
+A complete reference implementation (React + FastAPI + Snowflake). This is NOT meant to be deployed directly from the appdef — it serves as a reference the agent can consult when reconstructing components. The agent reads patterns from it but writes new code in the user's preferred style and tech stack.
 
 ---
 

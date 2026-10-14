@@ -1,1 +1,15 @@
 .DS_Store
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.env
+*.db
+notes/
+raw/
+activity_store.json
+.snowflake/
